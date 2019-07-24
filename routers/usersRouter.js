@@ -2,10 +2,11 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 
 const Users = require("../models/users-model");
+const restricted = require("../middleware/restricted");
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
+router.get("/", restricted, (req, res) => {
   Users.find()
     .then(users => {
       res.status(200).json(users);
@@ -56,6 +57,7 @@ router.get("/login", (req, res) => {
         .compare(password, userFound.password)
         .then(isMatch => {
           if (isMatch) {
+            req.session.username = userFound.username;
             res.status(200).json({ message: `Welcome ${username}!` });
           } else {
             res.status(401).json({ message: "Invalid Credentials" });
@@ -64,6 +66,16 @@ router.get("/login", (req, res) => {
         .catch(error => {
           res.status(500).json(error);
         });
+    }
+  });
+});
+
+router.get("/logout", restricted, (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      res.status(500).json({ message: "No one is logged in to be logged out" });
+    } else {
+      res.status(200).json({ message: "You are logged out" });
     }
   });
 });
